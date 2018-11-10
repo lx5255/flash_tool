@@ -2,8 +2,13 @@
 #include <stdlib.h>
 #include "unistd.h"
 #include "direct.h"
+#include "string.h"
 #include <io.h>
 
+
+typedef unsigned char bool;
+#define false 0
+#define true  1
 
 unsigned long ld_word(char *in)
 {
@@ -41,7 +46,7 @@ bool get_flash_head(flash_inf *head, char *mbr)
     if(strcmp(FLASH_HEAD_TAG, mbr)){ 
         return false;
     }
-    if((mbr[510]i != 0x55)||(mbr[511] != 0xaa)){
+    if((mbr[510] != 0x55)||(mbr[511] != 0xaa)){
         return false; 
     }
     /* memcpy(head->tag, mbr, 8); */
@@ -69,7 +74,7 @@ char *get_empty_dpt(char *mbr)
 {
     flash_inf head;
     char *dpt;
-    if(get_flash_head(&head, mbr) == flase){ 
+    if(get_flash_head(&head, mbr) == false){ 
         return NULL;
     }
     if(head.dpt_start > (512 - 32)){
@@ -101,7 +106,7 @@ bool get_dpt_inf(dpt_inf *inf, char *dpt)
     if((dpt[0] != 'D')||(dpt[1] != 'P') ||(dpt[2] != 'T')){
        return false; 
     }
-    inf->part_name = ld_word(&dpt[PART_NAME_OFFSET]);    
+    memcpy(inf->part_name, &dpt[PART_NAME_OFFSET], 12);
     inf->part_addr = ld_word(&dpt[PART_ADDR_OFFSET]);    
     inf->part_size = ld_word(&dpt[PART_SIZE_OFFSET]);    
 }
@@ -155,7 +160,7 @@ int copy_file(char *outfilename, char *infilename)
     }
 
 
-   	outfile = fopen(outfilename "rb+");
+   	outfile = fopen((void *)outfilename,"rb+");
 	if(outfile == NULL) {
 		outfile = fopen(outfile_name,  "wb+");
 		if(outfile == NULL) {
@@ -171,7 +176,7 @@ int copy_file(char *outfilename, char *infilename)
 		return 2;
 	}
 
-	res =  fread((void *)mbr,  1, 512,input_file);
+	res =  fread((void *)mbr,  1, 512, infile);
 
 	fseek(outfile,0L,SEEK_END);   /*利用fseek函数将指针定位在文件结尾的位置*/
 	size = ftell(outfile) ;
@@ -221,7 +226,7 @@ int copy_file(char *outfilename, char *infilename)
     dpt = get_empty_dpt(mbr);  //获取一个可写的DPT
     st_dpt_inf(dpt, &part_inf);
 
-    flash_inf.npart++;
+    flash_head.npart++;
     st_flash_head(mbr, &flash_head);
 
     //将MBR写入文件
