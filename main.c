@@ -140,6 +140,7 @@ bool get_outfile_name(char *out, int argc, char *argv[])
 }
 
 char flash_mbr[512];
+int flash_size = 0;
 int copy_file(char *outfilename, char *infilename)
 {
 	FILE *infile = NULL, *outfile = NULL;
@@ -199,7 +200,7 @@ int copy_file(char *outfilename, char *infilename)
     //从新写FALSH头信息
     if(resethead == true){
        memset(flash_mbr, 0x00, 512);
-       flash_head.flash_size = 0; 
+       flash_head.flash_size = flash_size; 
        flash_head.npart = 0;
        flash_head.dpt_start = 32;
        st_flash_head(mbr, &flash_head);
@@ -207,6 +208,10 @@ int copy_file(char *outfilename, char *infilename)
     } 
 
     part_inf.part_addr = ftell(outfile); 
+    if(part_inf.part_addr %512){ //对齐
+       part_inf.part_addr += 512 - part_inf.part_addr%512; 
+	   fseek(outfile,part_inf.part_addr,SEEK_SET); 
+    }
 	fseek(infile,0L,SEEK_SET); 
 	while(1){  //拷贝数据
 		res =  fread((void *)buff,  1, 512,infile);
@@ -232,6 +237,8 @@ int copy_file(char *outfilename, char *infilename)
     res =  fwrite((void *)mbr, 1, 512, outfile);
     if(res != 512){
         res = 6;
+    }else{
+        res = 0; 
     }
 
 ERR_DEAL:
@@ -248,14 +255,25 @@ int main(int argc, char *argv[])
 {
 	int res = 0; 
     bool is_file = false;
-    int flash_size;
 
     printf("Hello world!\n");
 
-    outfile_flag = get_outfile_name(outfile_name, argc, argc);
+    outfile_flag = get_outfile_name(outfile_name, argc, argv);
     if(outfile_flag == false){
         strcpy(outfile_name, "flash_image.bin");         
     }
+
+    printf("enter flash size(MB)：");
+    scanf("%d",&flash_size);
+    printf("\n");
+
+    if(flash_size > 32){
+        printf("flash size err\n");
+        return 1;
+    }
+    flash_size = flash_size*1024*1024;
+	res = _unlink(outfile_name);
+	printf("del file res %d", res);
 
     char arg_cnt;
     for(arg_cnt = 0; arg_cnt<argc; arg_cnt++){
@@ -263,34 +281,18 @@ int main(int argc, char *argv[])
         if(strcmp("-infile", argv[arg_cnt]) == 0){ 
             is_file = true;
         }else if(strcmp("-outfile", argv[arg_cnt]) == 0){
+            is_file = false;
         }else{
            if(is_file == true){
                 res = copy_file(outfile_name, argv[arg_cnt]);            
                 if(res){
                    printf("cope file %s err %d\n", argv[arg_cnt], res); 
-                   return 1;
+	               res = _unlink(outfile_name);
+                   return 1; 
                 }
            }
         }
     }
 
-
-    printf("请输入FALSH的大小(单位MB)：");
-    scanf("%d",&flash_size);
-    printf("\n");
- 	/* buff = (char *)_getcwd(NULL, 0); */
-	/*  printf("dir:%s\n", buff); */
-	/* //strcpy(pach, buff); */
-	/* res = _unlink("./font_image.bin"); */
-	/* printf("del file res %d++++++\n", res); */
-    /*  */
-	/* free(buff); */
-	/* res = _chdir("./res"); */
-	/* if(res) */
-	/* { */
-	/* 	printf("dir err\n"); */
-	/* } */
-    /* printf("argc %d, %s", argc, argv[1]); */
-    /*  */
     return 0;
 }
