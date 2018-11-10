@@ -125,15 +125,13 @@ bool st_dpt_inf(char *dpt, dpt_inf *inf)
 }
 
 
-char outfile_name[512];
-bool outfile_flag = 0; 
 bool get_outfile_name(char *out, int argc, char *argv[])
 {
    int arg_cnt;
    for(arg_cnt = 0; arg_cnt<argc; arg_cnt++){
        if(strcmp("-outfile", argv[arg_cnt]) == 0){ 
-           if((argc - arg_cnt)>=2){
-               strcpy(out, argv[arg_cnt+1]);
+           if((argc - arg_cnt)>=1){
+               strcpy(out, argv[arg_cnt+0]);
                return true;
            }
        }
@@ -162,7 +160,7 @@ int copy_file(char *outfilename, char *infilename)
 
    	outfile = fopen((void *)outfilename,"rb+");
 	if(outfile == NULL) {
-		outfile = fopen(outfile_name,  "wb+");
+		outfile = fopen(outfilename,  "wb+");
 		if(outfile == NULL) {
 			printf("new file err\n");
 			return 1;
@@ -244,12 +242,42 @@ ERR_DEAL:
 }
 
 
+char outfile_name[512];
+bool outfile_flag = 0; 
 int main(int argc, char *argv[])
 {
 	int res = 0; 
+    bool is_file = false;
+    int flash_size;
 
     printf("Hello world!\n");
 
+    outfile_flag = get_outfile_name(outfile_name, argc, argc);
+    if(outfile_flag == false){
+        strcpy(outfile_name, "flash_image.bin");         
+    }
+
+    char arg_cnt;
+    for(arg_cnt = 0; arg_cnt<argc; arg_cnt++){
+        printf("arg:%s\n", argv[arg_cnt]);
+        if(strcmp("-infile", argv[arg_cnt]) == 0){ 
+            is_file = true;
+        }else if(strcmp("-outfile", argv[arg_cnt]) == 0){
+        }else{
+           if(is_file == true){
+                res = copy_file(outfile_name, argv[arg_cnt]);            
+                if(res){
+                   printf("cope file %s err %d\n", argv[arg_cnt], res); 
+                   return 1;
+                }
+           }
+        }
+    }
+
+
+    printf("请输入FALSH的大小(单位MB)：");
+    scanf("%d",&flash_size);
+    printf("\n");
  	/* buff = (char *)_getcwd(NULL, 0); */
 	/*  printf("dir:%s\n", buff); */
 	/* //strcpy(pach, buff); */
