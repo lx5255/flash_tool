@@ -133,6 +133,7 @@ bool st_dpt_inf(u8 *dpt, dpt_inf *inf)
     memcpy(&dpt[PART_NAME_OFFSET],inf->part_name, 12);
     st_word(&dpt[PART_ADDR_OFFSET], inf->part_addr);
     st_word(&dpt[PART_SIZE_OFFSET], inf->part_size);
+    return true;
 }
 
 
@@ -231,8 +232,8 @@ int copy_file(char *outfilename, char *infilename)
     }
 
     part_inf.part_addr = ftell(outfile);
-    if(part_inf.part_addr %512){ //对齐
-       part_inf.part_addr += 512 - part_inf.part_addr%512;
+    if(part_inf.part_addr %4096){ //对齐
+       part_inf.part_addr += 4096 - part_inf.part_addr%4096;
 	   fseek(outfile,part_inf.part_addr,SEEK_SET);
     }
 	fseek(infile,0L,SEEK_SET);
